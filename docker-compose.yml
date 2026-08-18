@@ -14,3 +14,4 @@ services:
       - "9000:9000"
     env_file:
       - ./backend/.env  # Use environment variables from .env file
+      
