@@ -7,22 +7,19 @@ import logging
 
 load_dotenv()
 
-# simple logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Get values from .env
+# get db details from .env
 db_user = os.getenv("DB_USER")
 db_password = os.getenv("DB_PASSWORD")
 db_cluster = os.getenv("DB_CLUSTER")
 db_name = os.getenv("DB_NAME")
 
-# Build MongoDB URI
 mongo_uri = f"mongodb+srv://{db_user}:{db_password}@{db_cluster}/?retryWrites=true&w=majority"
 
-# Connect to MongoDB
 client = MongoClient(mongo_uri)
 db = client[db_name]
 collection = db["data"]
@@ -46,7 +43,7 @@ def process():
         name = data.get("name")
         password = data.get("password")
 
-        # simple validation
+        # check if name and password is given
         if not name or not password:
             return jsonify({"success": False, "message": "Name and password required"}), 400
 
@@ -56,13 +53,12 @@ def process():
         if len(password) < 4:
             return jsonify({"success": False, "message": "Password too short"}), 400
 
-        # hash password
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        # hash the password
+        hashed = hashlib.sha256(password.encode()).hexdigest()
 
-        # insert data
         collection.insert_one({
             "name": name,
-            "password": hashed_password
+            "password": hashed
         })
 
         logger.info("Data saved for: %s", name)
@@ -71,10 +67,8 @@ def process():
 
     except Exception as e:
         logger.error("Error: %s", str(e))
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9000)
+    

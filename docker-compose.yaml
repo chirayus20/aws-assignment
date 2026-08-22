@@ -7,11 +7,12 @@ services:
       - "8000:8000"
     depends_on:
       - backend
+    environment:
+      - BACKEND_URL=http://backend:9000
 
   backend:
     build: ./backend
     ports:
       - "9000:9000"
     env_file:
-      - ./backend/.env  # Use environment variables from .env file
-      
+      - ./backend/.env

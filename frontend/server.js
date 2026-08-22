@@ -5,49 +5,39 @@ const fs = require("fs");
 
 const app = express();
 
-// parse form data
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// static files
 app.use(express.static("public"));
 
+// when user submits the form
 app.post("/submit", async (req, res) => {
     try {
-        // send data to backend
-        const response = await axios.post(
-            "http://localhost:9000/process",
-            req.body
-        );
+        // calling backend
+        const backendUrl = process.env.BACKEND_URL || "http://localhost:9000";
+        const response = await axios.post(`${backendUrl}/process`, req.body);
 
         if (response.data.success) {
             return res.redirect("/success.html");
+        } else {
+            throw new Error(response.data.message || "Failed");
         }
 
-        throw new Error(response.data.message || "Something went wrong");
+    } catch (err) {
+        let msg = "Something went wrong";
 
-    } catch (error) {
-        let errorMsg = "Submission Failed";
-
-        if (error.code === "ECONNREFUSED") {
-            errorMsg = "Backend is not running";
-        } else if (error.response && error.response.data && error.response.data.message) {
-            errorMsg = error.response.data.message;
-        } else if (error.message) {
-            errorMsg = error.message;
+        if (err.code === "ECONNREFUSED") {
+            msg = "Backend is not running";
+        } else if (err.response && err.response.data && err.response.data.message) {
+            msg = err.response.data.message;
+        } else if (err.message) {
+            msg = err.message;
         }
 
-        // read form page
-        let html = fs.readFileSync(
-            path.join(__dirname, "public", "index.html"),
-            "utf8"
-        );
+        // load the form page again and show error
+        let page = fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8");
+        page = page.replace("<!-- ERROR_MESSAGE -->", `<div class="error-alert">${msg}</div>`);
 
-        // show error
-        const errorHtml = `<div class="error-alert">${errorMsg}</div>`;
-        html = html.replace("<!-- ERROR_MESSAGE -->", errorHtml);
-
-        return res.status(500).send(html);
+        return res.status(500).send(page);
     }
 });
 
